@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/ebp_ot_lecture_module2.html" }
+  ]
+}
