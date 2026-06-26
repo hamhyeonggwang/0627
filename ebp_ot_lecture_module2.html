@@ -428,13 +428,21 @@ a.src-link[data-pdf]::after{content:" PDF↗";font-size:10px;color:var(--green);
 #chipTip .ct-desc{font-size:12.5px;color:var(--sky-200);line-height:1.6}
 
 /* ===== Glossary ===== */
-.gloss{border-bottom:1.5px dashed var(--blue-600);cursor:help}
+.gloss{border-bottom:2px solid var(--blue-500);cursor:help;background:rgba(46,111,184,.1);border-radius:3px;padding:0 3px;transition:background .15s;color:var(--blue-600);font-weight:600}
+.gloss:hover{background:rgba(46,111,184,.22)}
 #glossTip{position:fixed;background:var(--navy-800);color:#fff;border-radius:10px;padding:12px 15px;max-width:250px;font-size:13px;line-height:1.6;z-index:500;pointer-events:none;opacity:0;transition:opacity .15s;box-shadow:0 14px 40px -10px rgba(0,0,0,.55)}
 #glossTip.show{opacity:1}
 #glossTip .gt-term{font-family:var(--serif);font-weight:700;font-size:14px;color:var(--gold-soft);margin-bottom:4px}
 #glossTip .gt-def{font-size:12.5px;color:var(--sky-200);line-height:1.6}
 
 /* ===== ICF Interactive ===== */
+/* ICF pulse hint */
+@keyframes icfPulse{0%,100%{opacity:1}50%{opacity:.5}}
+.icf-hint [data-icf-box]{animation:icfPulse 2s ease-in-out infinite}
+.icf-hint [data-icf-box]:hover{animation:none;opacity:1}
+.icf-click-hint{font-family:var(--ui);font-size:11px;color:var(--ink-soft);text-align:center;margin-top:4px;opacity:.7;transition:opacity .4s}
+.icf-click-hint.hidden{opacity:0;pointer-events:none}
+
 [data-icf-box]{cursor:pointer;transition:opacity .2s}
 [data-icf-box]:hover{opacity:.78}
 .icf-info-panel{background:#fff;border:1px solid var(--line);border-radius:11px;padding:11px 15px;margin-top:8px;display:none;animation:ipFade .22s ease}
@@ -444,6 +452,19 @@ a.src-link[data-pdf]::after{content:" PDF↗";font-size:10px;color:var(--green);
 .icf-info-panel .ip-body{font-size:12.5px;color:var(--ink-soft);line-height:1.6;margin-top:4px}
 .icf-info-panel .ip-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
 .ip-tag{font-family:var(--ui);font-size:10.5px;font-weight:700;color:#fff;padding:2px 8px;border-radius:6px}
+
+/* PDF Spinner */
+.pdf-spinner-wrap{flex:1;position:relative;overflow:hidden}
+.pdf-spinner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f0f2f5;gap:14px;z-index:2;transition:opacity .25s}
+.pdf-spinner.hidden{opacity:0;pointer-events:none}
+.pdf-spinner-ring{width:44px;height:44px;border:4px solid var(--line);border-top-color:var(--blue-600);border-radius:50%;animation:pdfSpin .75s linear infinite}
+@keyframes pdfSpin{to{transform:rotate(360deg)}}
+.pdf-spinner p{font-family:var(--ui);font-size:13px;color:var(--ink-soft)}
+.pdf-modal-frame{position:absolute;inset:0;width:100%;height:100%;border:none}
+
+/* Green chip scroll mask */
+.gchips{-webkit-mask-image:linear-gradient(to bottom,#000 72%,transparent 100%);mask-image:linear-gradient(to bottom,#000 72%,transparent 100%)}
+.gchips.at-bottom{-webkit-mask-image:none;mask-image:none}
 </style>
 </head>
 <body>
@@ -894,7 +915,7 @@ a.src-link[data-pdf]::after{content:" PDF↗";font-size:10px;color:var(--green);
     <div class="eyebrow"><span class="dot"></span>참여 중심 치료를 설명하는 공통 언어</div>
     <h1 class="title h1">ICF 모델의 재해석</h1>
     <div class="icfwrap">
-      <svg viewBox="0 0 880 330" role="img" aria-label="ICF 상호작용 모델 — 활동과 참여 강조" style="width:100%;max-height:330px">
+      <svg id="icfSvg" class="icf-hint" viewBox="0 0 880 330" role="img" aria-label="ICF 상호작용 모델 — 활동과 참여 강조" style="width:100%;max-height:300px">
         <defs>
           <marker id="ah" markerWidth="9" markerHeight="9" refX="5" refY="4.5" orient="auto-start-reverse"><path d="M0,0 L9,4.5 L0,9 z" fill="#42546E"/></marker>
         </defs>
@@ -951,6 +972,7 @@ a.src-link[data-pdf]::after{content:" PDF↗";font-size:10px;color:var(--green);
           <line x1="640" y1="260" x2="720" y2="201" marker-start="url(#ah)" marker-end="url(#ah)"/>
         </g>
       </svg>
+      <p id="icfClickHint" class="icf-click-hint">↑ 각 구성요소를 클릭하면 설명이 나타납니다</p>
       <div id="icfInfoPanel" class="icf-info-panel">
         <div class="ip-title"></div>
         <div class="ip-body"></div>
@@ -1104,7 +1126,13 @@ a.src-link[data-pdf]::after{content:" PDF↗";font-size:10px;color:var(--green);
       <button class="pdf-page-btn" data-pdf="pilot" data-page="1">처음</button>
       <button class="pdf-page-btn" data-pdf="pilot" data-page="8">수가 산정 기준</button>
     </div>
-    <iframe id="pdfFrame" class="pdf-modal-frame" src="" title="PDF 뷰어"></iframe>
+    <div class="pdf-spinner-wrap">
+      <div id="pdfSpinner" class="pdf-spinner">
+        <div class="pdf-spinner-ring"></div>
+        <p>원문을 불러오는 중...</p>
+      </div>
+      <iframe id="pdfFrame" class="pdf-modal-frame" src="" title="PDF 뷰어"></iframe>
+    </div>
   </div>
 </div>
 
@@ -1293,6 +1321,44 @@ document.querySelectorAll('.gloss').forEach(el=>{
   el.addEventListener('mouseleave',()=>glossTip.classList.remove('show'));
 });
 
+// ===== PDF Spinner =====
+const pdfSpinner=document.getElementById('pdfSpinner');
+pdfFrame.addEventListener('load',()=>{
+  if(pdfFrame.src) pdfSpinner.classList.add('hidden');
+});
+const _origOpen=openPdfModal;
+openPdfModal=function(pdfKey,title,externalUrl,page){
+  pdfSpinner.classList.remove('hidden');
+  _origOpen(pdfKey,title,externalUrl,page);
+};
+
+// ===== Touch Swipe =====
+let _tx=0;
+document.getElementById('stage').addEventListener('touchstart',e=>{_tx=e.touches[0].clientX;},{passive:true});
+document.getElementById('stage').addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-_tx;
+  if(Math.abs(dx)>50) go(idx+(dx<0?1:-1));
+},{passive:true});
+
+// ===== Green Chip Scroll Indicator =====
+const gchipsEl=document.querySelector('.gchips');
+if(gchipsEl){
+  const updateMask=()=>{
+    const atBottom=gchipsEl.scrollHeight-gchipsEl.scrollTop<=gchipsEl.clientHeight+4;
+    gchipsEl.classList.toggle('at-bottom',atBottom);
+  };
+  gchipsEl.addEventListener('scroll',updateMask,{passive:true});
+  setTimeout(updateMask,100);
+}
+
+// ===== ICF Hint removal =====
+const icfHintEl=document.getElementById('icfClickHint');
+const icfSvgEl=document.getElementById('icfSvg');
+function removeIcfHint(){
+  if(icfHintEl) icfHintEl.classList.add('hidden');
+  if(icfSvgEl) icfSvgEl.classList.remove('icf-hint');
+}
+
 // SVG elements with data-gloss-key
 document.querySelectorAll('[data-gloss-key]').forEach(el=>{
   const key=el.dataset.glossKey;
@@ -1331,6 +1397,7 @@ const icfPanel=document.getElementById('icfInfoPanel');
 let activeIcfBox=null;
 document.querySelectorAll('[data-icf-box]').forEach(el=>{
   el.addEventListener('click',()=>{
+    removeIcfHint();
     const key=el.dataset.icfBox;
     const d=ICF_DATA[key];if(!d)return;
     if(activeIcfBox===el&&icfPanel.classList.contains('show')){
